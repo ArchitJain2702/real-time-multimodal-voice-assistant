@@ -1,0 +1,24 @@
+{
+  "name": "voice-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.9.2",
+  "description": "Real-Time Multimodal Voice Assistant Monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.4"
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
+  }
+}

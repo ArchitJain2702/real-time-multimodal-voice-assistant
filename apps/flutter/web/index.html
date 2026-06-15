@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Voice Assistant Flutter Client">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="voice_assistant_flutter">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Voice Assistant</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #0D0D1A;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+
+  <script>
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
+  </script>
+  
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
+  
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
+  <script>
+    (function() {
+      let audioCtx = null;
+      let nextStartTime = 0;
+      
+      window.initPcmPlayer = function(sampleRate) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: sampleRate });
+          nextStartTime = audioCtx.currentTime;
+          console.log("PCM Player initialized with sample rate:", sampleRate);
+        } catch (e) {
+          console.error("Failed to initialize AudioContext:", e);
+        }
+      };
+      
+      window.playPcmChunk = function(uint8Array) {
+        try {
+          if (!audioCtx) {
+            window.initPcmPlayer(16000);
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          
+          // uint8Array is a Uint8Array passed from Dart
+          // Since it's Int16 PCM, we construct an Int16Array view
+          const bytes = new Int16Array(uint8Array.buffer, uint8Array.byteOffset, uint8Array.byteLength / 2);
+          
+          // Convert Int16 PCM to Float32 [-1.0, 1.0]
+          const floats = new Float32Array(bytes.length);
+          for (let i = 0; i < bytes.length; i++) {
+            floats[i] = bytes[i] / 32768.0;
+          }
+          
+          const audioBuffer = audioCtx.createBuffer(1, floats.length, audioCtx.sampleRate);
+          audioBuffer.getChannelData(0).set(floats);
+          
+          const source = audioCtx.createBufferSource();
+          source.buffer = audioBuffer;
+          source.connect(audioCtx.destination);
+          
+          const now = audioCtx.currentTime;
+          if (nextStartTime < now) {
+            nextStartTime = now;
+          }
+          
+          source.start(nextStartTime);
+          nextStartTime += audioBuffer.duration;
+        } catch (e) {
+          console.error("Error playing PCM chunk:", e);
+        }
+      };
+      
+      window.stopPcmPlayer = function() {
+        if (audioCtx) {
+          try {
+            audioCtx.close();
+          } catch(e) {}
+          audioCtx = null;
+          console.log("PCM Player stopped");
+        }
+      };
+    })();
+  </script>
+</head>
+<body>
+</body>
+</html>
